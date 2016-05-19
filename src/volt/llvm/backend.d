@@ -3,16 +3,19 @@
 module volt.llvm.backend;
 
 import io = watt.io.std;
+import watt.conv : toStringz;
 
 import volt.errors;
 import volt.interfaces;
 import ir = volt.ir.ir;
+import volt.ir.util : buildConstantInt;
 
 import lib.llvm.core;
 import lib.llvm.analysis;
 import lib.llvm.bitreader;
 import lib.llvm.bitwriter;
 import lib.llvm.targetmachine;
+import lib.llvm.executionengine;
 import lib.llvm.c.Target;
 import lib.llvm.c.Linker;
 import lib.llvm.c.Initialization;
@@ -28,11 +31,30 @@ import volt.llvm.toplevel;
 class LlvmBackend : Backend
 {
 protected:
+	class CompiledFunctionStore
+	{
+		int val;
+		ir.Function func;
+
+		this(ir.Function func, int val)
+		{
+			this.val = val;
+			this.func = func;
+		}
+
+		ir.Constant getConstant(ir.Constant[] args)
+		{
+			return buildConstantInt(func.location, val);
+		}
+	}
+
+protected:
 	LanguagePass lp;
 
 	TargetType mTargetType;
 	string mFilename;
 	bool mDump;
+	CompiledFunctionStore[ir.NodeID] mCompiledFunctions;
 
 public:
 	this(LanguagePass lp)
@@ -53,6 +75,8 @@ public:
 			LLVMInitializeX86TargetMC();
 			LLVMInitializeX86AsmPrinter();
 		}
+
+		LLVMLinkInMCJIT();
 	}
 
 	override void close()
@@ -92,19 +116,7 @@ public:
 			io.output.writefln("Compiling module");
 		}
 
-		try {
-			state.compile(m);
-		} catch (object.Throwable t) {
-			if (mDump) {
-				version (Volt) {
-					io.output.writefln("Caught \"???\" dumping module:");
-				} else {
-					io.output.writefln("Caught \"%s\" dumping module:", t.classinfo.name);
-				}
-				LLVMDumpModule(mod);
-			}
-			throw t;
-		}
+		llvmModuleCompile(state, m);
 
 		if (mDump) {
 			io.output.writefln("Dumping module");
@@ -120,6 +132,70 @@ public:
 		}
 
 		LLVMWriteBitcodeToFile(mod, mFilename);
+	}
+
+	override Driver.CompiledDg hostCompile(ir.Module m, ir.Function func)
+	{
+		auto p = func.uniqueId in mCompiledFunctions;
+		if (p !is null) {
+			version (Volt) {
+				return p.getConstant;
+			} else {
+				return &p.getConstant;
+			}
+		}
+
+		auto state = new VoltState(lp, m);
+		scope (exit) {
+			state.close();
+			mFilename = null;
+		}
+
+		llvmModuleCompile(state, m);
+
+		LLVMExecutionEngineRef ee = null;
+		string error;
+		if (LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error)) {
+			assert(false, "JIT CREATION FAILED: " ~ error); // TODO: Real error.
+		}
+		LLVMValueRef llvmfunc;
+		if (LLVMFindFunction(ee, toStringz(func.mangledName), &llvmfunc) != 0) {
+			assert(false, "FIND FUNCTION FAILED"); // TODO: Real error.
+		}
+		auto genv = LLVMRunFunction(ee, llvmfunc, 0, null);
+
+		// TODO: uh
+		auto val = cast(int)LLVMGenericValueToInt(genv, true);
+		LLVMDisposeGenericValue(genv);
+		// TODO: more than that
+
+		//Driver.CompiledDg dg = theDelegate;
+		auto cfstore = new CompiledFunctionStore(func, val);
+		mCompiledFunctions[func.uniqueId] = cfstore;
+
+		version (Volt) {
+			return cfstore.getConstant;
+		} else {
+			return &cfstore.getConstant;
+		}
+	}
+
+protected:
+	void llvmModuleCompile(VoltState state, ir.Module m)
+	{
+		try {
+			state.compile(m);
+		} catch (object.Throwable t) {
+			if (mDump) {
+				version (Volt) {
+					io.output.writefln("Caught \"???\" dumping module:");
+				} else {
+					io.output.writefln("Caught \"%s\" dumping module:", t.classinfo.name);
+				}
+				LLVMDumpModule(state.mod);
+			}
+			throw t;
+		}
 	}
 }
 

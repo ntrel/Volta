@@ -306,6 +306,11 @@ public:
 		version (Volt) assert(false);
 	}
 
+	override Driver.CompiledDg hostCompile(ir.Module mod, ir.Function func)
+	{
+		return backend.hostCompile(mod, func);
+	}
+
 protected:
 	void writeDepFile()
 	{

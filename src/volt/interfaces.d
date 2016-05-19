@@ -15,6 +15,8 @@ import ir = volt.ir.ir;
  */
 interface Driver
 {
+	alias CompiledDg = ir.Constant delegate(ir.Constant[]);
+
 	/// Load a module source from file system.
 	ir.Module loadModule(ir.QualifiedName name);
 
@@ -22,6 +24,20 @@ interface Driver
 	ir.Module[] getCommandLineModules();
 
 	void close();
+
+	/**
+	 * Returns a delegate that runs the given function from
+	 * the given module.
+	 *
+	 * May be called multiple times with the same arguments,
+	 * or the same Module but with a different function from
+	 * the given Module.
+	 *
+	 * The driver should do caching of the module and function.
+	 * Once a module has been given to it or any children of it
+	 * may not be changed, doing so will cause undefined behaviour.
+	 */
+	abstract CompiledDg hostCompile(ir.Module, ir.Function);
 }
 
 /**
@@ -497,6 +513,8 @@ interface Backend
 	 * invocation of this function.
 	 */
 	void compile(ir.Module m);
+
+	Driver.CompiledDg hostCompile(ir.Module m, ir.Function func);
 
 	void close();
 }
