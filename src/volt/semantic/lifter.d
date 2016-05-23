@@ -178,6 +178,7 @@ protected:
 	{
 		switch (n.nodeType) with (ir.NodeType) {
 		case BlockStatement: assert(false);
+		case IfStatement: return copyIfStatement(parent, cast(ir.IfStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
 		case FunctionParam: panicAssert(n, false); break;
 		case Variable: return copyVariable(cast(ir.Variable)n);
@@ -206,6 +207,19 @@ protected:
 		}
 
 		return bs;
+	}
+
+	ir.IfStatement copyIfStatement(ir.Scope parent, ir.IfStatement old)
+	{
+		auto ifs = new ir.IfStatement();
+		ifs.location = old.location;
+		ifs.exp = ircopy.copyExp(old.exp);
+		ifs.thenState = copyBlock(parent, old.thenState);
+		if (old.elseState !is null) {
+			old.elseState = copyBlock(parent, old.elseState);
+		}
+		ifs.autoName = old.autoName;
+		return ifs;
 	}
 
 	/**
