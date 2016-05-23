@@ -179,9 +179,12 @@ protected:
 		switch (n.nodeType) with (ir.NodeType) {
 		case BlockStatement: assert(false);
 		case IfStatement: return copyIfStatement(parent, cast(ir.IfStatement)n);
+		case WhileStatement: return copyWhileStatement(parent, cast(ir.WhileStatement)n);
+		case DoStatement: return copyDoStatement(parent, cast(ir.DoStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
 		case FunctionParam: panicAssert(n, false); break;
 		case Variable: return copyVariable(cast(ir.Variable)n);
+		case ExpStatement: return copyExpStatement(cast(ir.ExpStatement)n);
 		default: return ircopy.copyNode(n);  // TODO: Above nodes nested in these nodes.
 		}
 		assert(false);
@@ -209,6 +212,14 @@ protected:
 		return bs;
 	}
 
+	ir.ExpStatement copyExpStatement(ir.ExpStatement old)
+	{
+		auto es = new ir.ExpStatement();
+		es.location = old.location;
+		es.exp = ircopy.copyExp(old.exp);
+		return es;
+	}
+
 	ir.IfStatement copyIfStatement(ir.Scope parent, ir.IfStatement old)
 	{
 		auto ifs = new ir.IfStatement();
@@ -220,6 +231,24 @@ protected:
 		}
 		ifs.autoName = old.autoName;
 		return ifs;
+	}
+
+	ir.WhileStatement copyWhileStatement(ir.Scope parent, ir.WhileStatement old)
+	{
+		auto ws = new ir.WhileStatement();
+		ws.location = old.location;
+		ws.condition = ircopy.copyExp(old.condition);
+		ws.block = copyBlock(parent, old.block);
+		return ws;
+	}
+
+	ir.DoStatement copyDoStatement(ir.Scope parent, ir.DoStatement old)
+	{
+		auto ws = new ir.DoStatement();
+		ws.location = old.location;
+		ws.condition = ircopy.copyExp(old.condition);
+		ws.block = copyBlock(parent, old.block);
+		return ws;
 	}
 
 	/**
