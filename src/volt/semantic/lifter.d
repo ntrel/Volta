@@ -92,7 +92,10 @@ protected:
 	 */
 	ir.Function copyFunction(ir.Function old)
 	{
-		assert((old.uniqueId in mStore) is null);
+		auto p = old.uniqueId in mStore;
+		if (p !is null) {
+			return *p;
+		}
 
 		// TODO Need actualize as insted.
 		//lp.actualize(old);
