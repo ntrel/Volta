@@ -33,17 +33,51 @@ class LlvmBackend : Backend
 protected:
 	class CompiledFunctionStore
 	{
-		int val;
+		ir.Module m;
+		LanguagePass lp;
 		ir.Function func;
 
-		this(ir.Function func, int val)
+		this(LanguagePass lp, ir.Module m, ir.Function func)
 		{
-			this.val = val;
+			this.lp = lp;
+			this.m = m;
 			this.func = func;
 		}
 
 		ir.Constant getConstant(ir.Constant[] args)
 		{
+			auto state = new VoltState(lp, m);
+			scope (exit) {
+				state.close();
+			}
+			try {
+				state.compile(m);
+			} catch (object.Throwable t) {
+				if (mDump) {
+					version (Volt) {
+						io.output.writefln("Caught \"???\" dumping module:");
+					} else {
+						io.output.writefln("Caught \"%s\" dumping module:", t.classinfo.name);
+					}
+					LLVMDumpModule(state.mod);
+				}
+				throw t;
+			}
+			LLVMExecutionEngineRef ee = null;
+			string error;
+			if (LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error)) {
+				assert(false, "JIT CREATION FAILED: " ~ error); // TODO: Real error.
+			}
+			LLVMValueRef llvmfunc;
+			if (LLVMFindFunction(ee, toStringz(func.mangledName), &llvmfunc) != 0) {
+				assert(false, "FIND FUNCTION FAILED"); // TODO: Real error.
+			}
+			auto genv = LLVMRunFunction(ee, llvmfunc, 0, null);
+
+			// TODO: uh
+			auto val = cast(int)LLVMGenericValueToInt(genv, true);
+			LLVMDisposeGenericValue(genv);
+			// TODO: more than that
 			return buildConstantInt(func.location, val);
 		}
 	}
@@ -145,32 +179,7 @@ public:
 			}
 		}
 
-		auto state = new VoltState(lp, m);
-		scope (exit) {
-			state.close();
-			mFilename = null;
-		}
-
-		llvmModuleCompile(state, m);
-
-		LLVMExecutionEngineRef ee = null;
-		string error;
-		if (LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error)) {
-			assert(false, "JIT CREATION FAILED: " ~ error); // TODO: Real error.
-		}
-		LLVMValueRef llvmfunc;
-		if (LLVMFindFunction(ee, toStringz(func.mangledName), &llvmfunc) != 0) {
-			assert(false, "FIND FUNCTION FAILED"); // TODO: Real error.
-		}
-		auto genv = LLVMRunFunction(ee, llvmfunc, 0, null);
-
-		// TODO: uh
-		auto val = cast(int)LLVMGenericValueToInt(genv, true);
-		LLVMDisposeGenericValue(genv);
-		// TODO: more than that
-
-		//Driver.CompiledDg dg = theDelegate;
-		auto cfstore = new CompiledFunctionStore(func, val);
+		auto cfstore = new CompiledFunctionStore(lp, m, func);
 		mCompiledFunctions[func.uniqueId] = cfstore;
 
 		version (Volt) {
