@@ -2804,7 +2804,6 @@ ir.Type extypeRunExp(Context ctx, ref ir.Exp exp, Parent parent)
 	auto dg = ctx.lp.driver.hostCompile(liftmod, liftfn);
 	assert(dg !is null);
 	exp = dg(null);
-	auto constant = dg(null);
 	return liftfn.type.ret;
 }
 
