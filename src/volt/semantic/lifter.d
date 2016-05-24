@@ -183,7 +183,7 @@ protected:
 		case ForStatement: return copyForStatement(parent, cast(ir.ForStatement)n);
 		case DoStatement: return copyDoStatement(parent, cast(ir.DoStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
-		case FunctionParam: panicAssert(n, false); break;
+		case FunctionParam: return copyFunctionParam(cast(ir.FunctionParam)n);
 		case Variable: return copyVariable(cast(ir.Variable)n);
 		case ExpStatement: return copyExpStatement(cast(ir.ExpStatement)n);
 		default: return ircopy.copyNode(n);  // TODO: Above nodes nested in these nodes.
@@ -369,6 +369,20 @@ protected:
 		fparam.name = old.name;
 		fparam.hasBeenNested = old.hasBeenNested;
 		return fparam;
+	}
+
+	ir.FunctionParam copyFunctionParam(ir.FunctionParam old)
+	{
+		auto fp = new ir.FunctionParam();
+		fp.location = old.location;
+		fp.func = copyFunction(old.func);
+		fp.index = old.index;
+		if (fp.assign !is null) {
+			fp.assign = ircopy.copyExp(old.assign);
+		}
+		fp.name = old.name;
+		fp.hasBeenNested = old.hasBeenNested;
+		return fp;
 	}
 
 	ir.Variable copyVariable(ir.Variable old)
