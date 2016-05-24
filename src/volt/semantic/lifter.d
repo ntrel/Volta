@@ -180,6 +180,7 @@ protected:
 		case BlockStatement: assert(false);
 		case IfStatement: return copyIfStatement(parent, cast(ir.IfStatement)n);
 		case WhileStatement: return copyWhileStatement(parent, cast(ir.WhileStatement)n);
+		case ForStatement: return copyForStatement(parent, cast(ir.ForStatement)n);
 		case DoStatement: return copyDoStatement(parent, cast(ir.DoStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
 		case FunctionParam: panicAssert(n, false); break;
@@ -249,6 +250,35 @@ protected:
 		ws.condition = ircopy.copyExp(old.condition);
 		ws.block = copyBlock(parent, old.block);
 		return ws;
+	}
+
+	ir.ForStatement copyForStatement(ir.Scope parent, ir.ForStatement old)
+	{
+		auto fs = new ir.ForStatement();
+		fs.location = old.location;
+		if (old.initVars.length > 0) {
+			fs.initVars = new ir.Variable[](old.initVars.length);
+			foreach (i; 0 .. old.initVars.length) {
+				fs.initVars[i] = copyVariable(old.initVars[i]);
+			}
+		}
+		if (old.initExps.length > 0) {
+			fs.initExps = new ir.Exp[](old.initExps.length);
+			foreach (i; 0 .. old.initExps.length) {
+				fs.initExps[i] = ircopy.copyExp(old.initExps[i]);
+			}
+		}
+		if (old.test !is null) {
+			fs.test = ircopy.copyExp(old.test);
+		}
+		if (old.increments.length > 0) {
+			fs.increments = new ir.Exp[](old.increments.length);
+			foreach (i; 0 .. fs.increments.length) {
+				fs.increments[i] = ircopy.copyExp(old.increments[i]);
+			}
+		}
+		fs.block = copyBlock(parent, old.block);
+		return fs;
 	}
 
 	/**
