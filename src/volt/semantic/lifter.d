@@ -99,6 +99,7 @@ protected:
 		assert(old.isActualized);
 
 		auto func = new ir.Function();
+		mStore[old.uniqueId] = func;
 		func.location = old.location;
 		func.isResolved = old.isResolved;
 		func.isActualized = old.isActualized;
@@ -169,7 +170,6 @@ protected:
 		func.isLoweredScopeExit = old.isLoweredScopeExit;
 		func.isLoweredScopeFailure = old.isLoweredScopeFailure;
 		func.isLoweredScopeSuccess = old.isLoweredScopeSuccess;
-		mStore[old.uniqueId] = func;
 		mMod.children.nodes ~= func;
 		return func;
 	}
