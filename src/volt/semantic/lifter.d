@@ -441,13 +441,17 @@ protected:
 			throw makeNotAvailableInCTFE(old, "non toplevel functions");
 		}
 		auto func = super.copyFunction(old);
+		// Correct references to function parameters to point to the ones on the new function.
+		auto replacer = new ExpReferenceReplacer();
 		foreach (i, param; old.params) {
 			auto l = func.params[i].location;
 			auto v = func.params[i];
 			auto name = func.params[i].name;
-			auto replacer = new ExpReferenceReplacer(param, buildExpReference(l, v, name));
+			replacer.fromDecl = param;
+			replacer.toExp = buildExpReference(l, v, name);
 			accept(func._body, replacer);
 		}
+		// Make sure the mangled name doesn't clash with the original.
 		func.mangledName = "__CTFE_" ~ func.mangledName;
 		return func;
 	}
