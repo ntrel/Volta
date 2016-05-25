@@ -195,6 +195,8 @@ protected:
 		case FunctionParam: return copyFunctionParam(cast(ir.FunctionParam)n);
 		case Variable: return copyVariable(cast(ir.Variable)n);
 		case ExpStatement: return copyExpStatement(cast(ir.ExpStatement)n);
+		case BreakStatement: return copyBreakStatement(cast(ir.BreakStatement)n);
+		case ContinueStatement: return copyContinueStatement(cast(ir.ContinueStatement)n);
 		default: return ircopy.copyNode(n);  // TODO: Above nodes nested in these nodes.
 		}
 		assert(false);
@@ -220,6 +222,22 @@ protected:
 		}
 
 		return bs;
+	}
+
+	ir.BreakStatement copyBreakStatement(ir.BreakStatement old)
+	{
+		auto b = new ir.BreakStatement();
+		b.location = old.location;
+		b.label = old.label;
+		return b;
+	}
+
+	ir.ContinueStatement copyContinueStatement(ir.ContinueStatement old)
+	{
+		auto c = new ir.ContinueStatement();
+		c.location = old.location;
+		c.label = old.label;
+		return c;
 	}
 
 	ir.ExpStatement copyExpStatement(ir.ExpStatement old)
