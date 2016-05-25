@@ -188,6 +188,7 @@ protected:
 		case IfStatement: return copyIfStatement(parent, cast(ir.IfStatement)n);
 		case WhileStatement: return copyWhileStatement(parent, cast(ir.WhileStatement)n);
 		case ForStatement: return copyForStatement(parent, cast(ir.ForStatement)n);
+		case ForeachStatement: return copyForeachStatement(parent, cast(ir.ForeachStatement)n);
 		case DoStatement: return copyDoStatement(parent, cast(ir.DoStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
 		case FunctionParam: return copyFunctionParam(cast(ir.FunctionParam)n);
@@ -257,6 +258,37 @@ protected:
 		ws.condition = ircopy.copyExp(old.condition);
 		ws.block = copyBlock(parent, old.block);
 		return ws;
+	}
+
+	ir.ForeachStatement copyForeachStatement(ir.Scope parent, ir.ForeachStatement old)
+	{
+		auto fes = new ir.ForeachStatement();
+		fes.location = old.location;
+		fes.reverse = old.reverse;
+		if (old.itervars.length > 0) {
+			fes.itervars = new ir.Variable[](old.itervars.length);
+			foreach (i; 0 .. old.itervars.length) {
+				fes.itervars[i] = copyVariable(old.itervars[i]);
+			}
+		}
+		version (Volt) {
+			fes.refvars = new old.refvars[0 .. $];
+		} else {
+			fes.refvars = old.refvars.dup;
+		}
+		if (old.aggregate !is null) {
+			fes.aggregate = ircopy.copyExp(old.aggregate);
+		}
+		if (old.beginIntegerRange !is null) {
+			fes.beginIntegerRange = ircopy.copyExp(old.beginIntegerRange);
+		}
+		if (old.endIntegerRange !is null) {
+			fes.endIntegerRange = ircopy.copyExp(old.endIntegerRange);
+		}
+		fes.block = copyBlock(parent, old.block);
+		assert(fes.opApplyType is null);
+		assert(fes.decodeFunction is null);
+		return fes;
 	}
 
 	ir.ForStatement copyForStatement(ir.Scope parent, ir.ForStatement old)
