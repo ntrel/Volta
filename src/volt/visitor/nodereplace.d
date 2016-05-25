@@ -18,6 +18,10 @@ public:
 		this.toExp = exp;
 	}
 
+	this()
+	{
+	}
+
 public:
 	ir.Declaration fromDecl;
 	ir.Exp toExp;
@@ -25,6 +29,7 @@ public:
 public:
 	override Status visit(ref ir.Exp exp, ir.ExpReference eref)
 	{
+		assert(fromDecl !is null && toExp !is null);
 		if (eref.decl is fromDecl) {
 			exp = copyExp(toExp);
 		}
