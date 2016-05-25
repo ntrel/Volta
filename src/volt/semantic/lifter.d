@@ -190,6 +190,7 @@ protected:
 		case ForStatement: return copyForStatement(parent, cast(ir.ForStatement)n);
 		case ForeachStatement: return copyForeachStatement(parent, cast(ir.ForeachStatement)n);
 		case DoStatement: return copyDoStatement(parent, cast(ir.DoStatement)n);
+		case SwitchStatement: return copySwitchStatement(parent, cast(ir.SwitchStatement)n);
 		case Alias: return copyAlias(cast(ir.Alias)n);
 		case FunctionParam: return copyFunctionParam(cast(ir.FunctionParam)n);
 		case Variable: return copyVariable(cast(ir.Variable)n);
@@ -258,6 +259,35 @@ protected:
 		ws.condition = ircopy.copyExp(old.condition);
 		ws.block = copyBlock(parent, old.block);
 		return ws;
+	}
+
+	ir.SwitchStatement copySwitchStatement(ir.Scope parent, ir.SwitchStatement old)
+	{
+		auto ss = new ir.SwitchStatement();
+		ss.location = old.location;
+		ss.isFinal = old.isFinal;
+		assert(old.cases.length > 0);
+		ss.cases = new ir.SwitchCase[](old.cases.length);
+		foreach (i, cc; ss.cases) {
+			auto oc = old.cases[i];
+			auto c = ss.cases[i] = new ir.SwitchCase();
+			c.location = oc.location;
+			if (oc.firstExp !is null) {
+				c.firstExp = ircopy.copyExp(oc.firstExp);
+			}
+			if (oc.secondExp !is null) {
+				c.secondExp = ircopy.copyExp(oc.secondExp);
+			}
+			if (oc.exps.length > 0) {
+				c.exps = new ir.Exp[](oc.exps.length);
+				foreach (j; 0 .. c.exps.length) {
+					c.exps[j] = ircopy.copyExp(oc.exps[j]);
+				}
+			}
+			c.isDefault = oc.isDefault;
+			c.statements = copyBlock(parent, oc.statements);
+		}
+		return ss;
 	}
 
 	ir.ForeachStatement copyForeachStatement(ir.Scope parent, ir.ForeachStatement old)
