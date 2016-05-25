@@ -53,16 +53,10 @@ protected:
 			try {
 				state.compile(m);
 			} catch (object.Throwable t) {
-				if (mDump) {
-					version (Volt) {
-						io.output.writefln("Caught \"???\" dumping module:");
-					} else {
-						io.output.writefln("Caught \"%s\" dumping module:", t.classinfo.name);
-					}
-					LLVMDumpModule(state.mod);
-				}
 				throw t;
 			}
+
+			// Initialise the JIT engine.
 			LLVMExecutionEngineRef ee = null;
 			string error;
 			if (LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error)) {
@@ -72,7 +66,24 @@ protected:
 			if (LLVMFindFunction(ee, toStringz(func.mangledName), &llvmfunc) != 0) {
 				assert(false, "FIND FUNCTION FAILED"); // TODO: Real error.
 			}
-			auto genv = LLVMRunFunction(ee, llvmfunc, 0, null);
+
+			// Turn the arguments into something LLVM understands.
+			LLVMGenericValueRef[] genargs;
+			if (args.length > 0) {
+				genargs = new LLVMGenericValueRef[](args.length);
+			}
+			auto t = LLVMInt32TypeInContext(state.context);
+			foreach (i, arg; args) {
+				genargs[i] = LLVMCreateGenericValueOfInt(t, arg.u._ulong, true);
+			}
+
+			// Run the function using LLVM.
+			auto genv = LLVMRunFunction(ee, llvmfunc, cast(uint)genargs.length, genargs.ptr);
+
+			// Dispose of the LLVM arguments.
+			foreach (genarg; genargs) {
+				LLVMDisposeGenericValue(genarg);
+			}
 
 			// TODO: uh
 			auto val = cast(int)LLVMGenericValueToInt(genv, true);

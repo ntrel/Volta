@@ -6,6 +6,9 @@ import ir = volt.ir.ir;
 import ircopy = volt.ir.copy;
 import volt.ir.util;
 
+import volt.visitor.nodereplace;
+import volt.visitor.visitor;
+
 import volt.interfaces;
 import volt.errors;
 
@@ -106,8 +109,8 @@ protected:
 		func.location = old.location;
 		func.isResolved = old.isResolved;
 		func.isActualized = old.isActualized;
+		// func.myScope is copied as late as possible, at the bottom of this method.
 		func.access = old.access;
-		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		func.kind = old.kind;
 		func.type = new ir.FunctionType(old.type);
 		version (Volt) {
@@ -173,6 +176,7 @@ protected:
 		func.isLoweredScopeExit = old.isLoweredScopeExit;
 		func.isLoweredScopeFailure = old.isLoweredScopeFailure;
 		func.isLoweredScopeSuccess = old.isLoweredScopeSuccess;
+		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		mMod.children.nodes ~= func;
 		return func;
 	}
@@ -376,16 +380,8 @@ protected:
 
 	ir.FunctionParam copyFunctionParam(ir.FunctionParam old)
 	{
-		auto fp = new ir.FunctionParam();
-		fp.location = old.location;
-		fp.func = copyFunction(old.func);
-		fp.index = old.index;
-		if (fp.assign !is null) {
-			fp.assign = ircopy.copyExp(old.assign);
-		}
-		fp.name = old.name;
-		fp.hasBeenNested = old.hasBeenNested;
-		return fp;
+		auto fns = mStore.values[0];
+		return fns.params[old.index];
 	}
 
 	ir.Variable copyVariable(ir.Variable old)
@@ -445,6 +441,13 @@ protected:
 			throw makeNotAvailableInCTFE(old, "non toplevel functions");
 		}
 		auto func = super.copyFunction(old);
+		foreach (i, param; old.params) {
+			auto l = func.params[i].location;
+			auto v = func.params[i];
+			auto name = func.params[i].name;
+			auto replacer = new ExpReferenceReplacer(param, buildExpReference(l, v, name));
+			accept(func._body, replacer);
+		}
 		func.mangledName = "__CTFE_" ~ func.mangledName;
 		return func;
 	}

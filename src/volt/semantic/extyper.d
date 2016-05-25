@@ -2801,9 +2801,14 @@ ir.Type extypeRunExp(Context ctx, ref ir.Exp exp, Parent parent)
 		auto irv = new IrVerifier();
 		irv.transform(liftmod);
 	}
+	ir.Constant[] args;
+	foreach (arg; pfix.arguments) {
+		ir.Exp dummy = arg;
+		args ~= fold(dummy);
+	}
 	auto dg = ctx.lp.driver.hostCompile(liftmod, liftfn);
 	assert(dg !is null);
-	exp = dg(null);
+	exp = dg(args);
 	return liftfn.type.ret;
 }
 
