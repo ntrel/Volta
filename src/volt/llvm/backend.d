@@ -8,8 +8,9 @@ import watt.conv : toStringz;
 import volt.errors;
 import volt.interfaces;
 import ir = volt.ir.ir;
-import volt.ir.util : buildConstantInt;
+import volt.ir.util;
 import volt.lowerer.llvmlowerer;
+import volt.token.location;
 
 import lib.llvm.core;
 import lib.llvm.analysis;
@@ -80,17 +81,49 @@ protected:
 
 			// Run the function using LLVM.
 			auto genv = LLVMRunFunction(ee, llvmfunc, cast(uint)genargs.length, genargs.ptr);
+			scope (exit) LLVMDisposeGenericValue(genv);
 
 			// Dispose of the LLVM arguments.
 			foreach (genarg; genargs) {
 				LLVMDisposeGenericValue(genarg);
 			}
 
-			// TODO: uh
+			return llvmGenericToConstant(func.location, genv, func.type.ret);
+		}
+	}
+	ir.Constant llvmGenericToConstant(Location loc, LLVMGenericValueRef genv, ir.Type type)
+	{
+		auto ptype = cast(ir.PrimitiveType)type;
+		if (ptype is null) {
+			assert(false, "NON PRIMITIVE RETURN");  // TODO: Real error.
+		}
+		switch (ptype.type) with (ir.PrimitiveType.Kind) {
+		case Byte:
+			auto val = cast(byte)LLVMGenericValueToInt(genv, true);
+			return buildConstantByte(loc, val);
+		case Ubyte:
+			auto val = cast(ubyte)LLVMGenericValueToInt(genv, false);
+			return buildConstantUbyte(loc, val);
+		case Short:
+			auto val = cast(short)LLVMGenericValueToInt(genv, true);
+			return buildConstantShort(loc, val);
+		case Ushort:
+			auto val = cast(ushort)LLVMGenericValueToInt(genv, false);
+			return buildConstantUshort(loc, val);
+		case Int:
 			auto val = cast(int)LLVMGenericValueToInt(genv, true);
-			LLVMDisposeGenericValue(genv);
-			// TODO: more than that
-			return buildConstantInt(func.location, val);
+			return buildConstantInt(loc, val);
+		case Uint:
+			auto val = cast(uint)LLVMGenericValueToInt(genv, false);
+			return buildConstantUint(loc, val);
+		case Long:
+			auto val = cast(long)LLVMGenericValueToInt(genv, true);
+			return buildConstantLong(loc, val);
+		case Ulong:
+			auto val = cast(ulong)LLVMGenericValueToInt(genv, false);
+			return buildConstantUlong(loc, val);
+		default:
+			assert(false, "UNHANDLED PRIMITIVE TYPE");  // TODO: Real error.
 		}
 	}
 
