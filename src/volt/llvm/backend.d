@@ -9,6 +9,7 @@ import volt.errors;
 import volt.interfaces;
 import ir = volt.ir.ir;
 import volt.ir.util : buildConstantInt;
+import volt.lowerer.llvmlowerer;
 
 import lib.llvm.core;
 import lib.llvm.analysis;
@@ -181,6 +182,8 @@ public:
 
 	override Driver.CompiledDg hostCompile(ir.Module m, ir.Function func)
 	{
+		auto lowerer = new LlvmLowerer(lp);
+		lowerer.transform(m);
 		auto p = func.uniqueId in mCompiledFunctions;
 		if (p !is null) {
 			version (Volt) {

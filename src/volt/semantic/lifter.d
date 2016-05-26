@@ -120,7 +120,7 @@ protected:
 		func.location = old.location;
 		func.isResolved = old.isResolved;
 		func.isActualized = old.isActualized;
-		// func.myScope is copied as late as possible, at the bottom of this method.
+		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		func.access = old.access;
 		func.kind = old.kind;
 		func.type = new ir.FunctionType(old.type);
@@ -187,7 +187,6 @@ protected:
 		func.isLoweredScopeExit = old.isLoweredScopeExit;
 		func.isLoweredScopeFailure = old.isLoweredScopeFailure;
 		func.isLoweredScopeSuccess = old.isLoweredScopeSuccess;
-		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		mMod.children.nodes ~= func;
 		foreach (odnd; mDeclsToReplace) {
 			mReplacer.fromDecl = odnd.oldDecl;
@@ -233,6 +232,7 @@ protected:
 			bs.statements = old.statements.dup;
 		}
 		bs.myScope = new ir.Scope();
+		bs.myScope.parent = parent;
 
 		foreach (ref n; bs.statements) {
 			n = copyNode(bs.myScope, n);
