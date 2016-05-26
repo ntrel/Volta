@@ -120,7 +120,6 @@ protected:
 		func.location = old.location;
 		func.isResolved = old.isResolved;
 		func.isActualized = old.isActualized;
-		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		func.access = old.access;
 		func.kind = old.kind;
 		func.type = new ir.FunctionType(old.type);
@@ -140,6 +139,7 @@ protected:
 		foreach (i, param; old.params) {
 			func.params[i] = copyFunctionParam(param, func);
 		}
+		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		foreach (i, nfunc; old.nestedFunctions) {
 			func.nestedFunctions[i] = copyFunction(nfunc);
 		}
