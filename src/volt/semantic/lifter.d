@@ -30,14 +30,25 @@ public:
 	LanguagePass lp;
 
 private:
+	struct OldDeclNewDecl
+	{
+		ir.Declaration oldDecl;
+		ir.Declaration newDecl;
+		string name;
+	}
+
+private:
 	ir.Function[ir.NodeID] mStore;
 	ir.Module mMod;
 	ir.Module[] mMods;
+	ExpReferenceReplacer mReplacer;
+	OldDeclNewDecl[] mDeclsToReplace;
 
 public:
 	this(LanguagePass lp)
 	{
 		this.lp = lp;
+		mReplacer = new ExpReferenceReplacer();
 	}
 
 	/**
@@ -178,6 +189,16 @@ protected:
 		func.isLoweredScopeSuccess = old.isLoweredScopeSuccess;
 		func.myScope = copyScope(old.myScope, mMod.myScope, func);
 		mMod.children.nodes ~= func;
+		foreach (odnd; mDeclsToReplace) {
+			mReplacer.fromDecl = odnd.oldDecl;
+			auto l = odnd.newDecl.location;
+			mReplacer.toExp = buildExpReference(l, odnd.newDecl, odnd.name);
+			assert(mReplacer !is null);
+			assert(mReplacer.fromDecl !is null);
+			assert(mReplacer.toExp !is null);
+			assert(odnd.newDecl !is null);
+			accept(func._body, mReplacer);
+		}
 		return func;
 	}
 
@@ -214,7 +235,7 @@ protected:
 		bs.myScope = new ir.Scope();
 
 		foreach (ref n; bs.statements) {
-			copyNode(bs.myScope, n);
+			n = copyNode(bs.myScope, n);
 		}
 
 		foreach (k, v; old.myScope.symbols) {
@@ -484,6 +505,13 @@ protected:
 		var.hasBeenDeclared = old.hasBeenDeclared;
 		var.useBaseStorage = old.useBaseStorage;
 		var.specialInitValue = old.specialInitValue;
+
+		OldDeclNewDecl odnd;
+		odnd.oldDecl = old;
+		odnd.newDecl = var;
+		odnd.name = var.name;
+		mDeclsToReplace ~= odnd;
+
 		return var;
 	}
 
@@ -522,14 +550,13 @@ protected:
 		}
 		auto func = super.copyFunction(old);
 		// Correct references to function parameters to point to the ones on the new function.
-		auto replacer = new ExpReferenceReplacer();
 		foreach (i, param; old.params) {
 			auto l = func.params[i].location;
 			auto v = func.params[i];
 			auto name = func.params[i].name;
-			replacer.fromDecl = param;
-			replacer.toExp = buildExpReference(l, v, name);
-			accept(func._body, replacer);
+			mReplacer.fromDecl = param;
+			mReplacer.toExp = buildExpReference(l, v, name);
+			accept(func._body, mReplacer);
 		}
 		// Make sure the mangled name doesn't clash with the original.
 		func.mangledName = "__CTFE_" ~ func.mangledName;
