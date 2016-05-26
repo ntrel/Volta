@@ -303,6 +303,7 @@ protected:
 	ir.SwitchStatement copySwitchStatement(ir.Scope parent, ir.SwitchStatement old)
 	{
 		auto ss = new ir.SwitchStatement();
+		ss.condition = ircopy.copyExp(old.condition);
 		ss.location = old.location;
 		ss.isFinal = old.isFinal;
 		assert(old.cases.length > 0);
