@@ -81,7 +81,7 @@ protected:
 
 			// Run the function using LLVM.
 			auto genv = LLVMRunFunction(ee, llvmfunc, cast(uint)genargs.length, genargs.ptr);
-			scope (exit) LLVMDisposeGenericValue(genv);
+		//	scope (exit) LLVMDisposeGenericValue(genv);
 
 			// Dispose of the LLVM arguments.
 			foreach (genarg; genargs) {
@@ -91,8 +91,12 @@ protected:
 			return llvmGenericToConstant(func.location, genv, func.type.ret);
 		}
 	}
+
 	ir.Constant llvmGenericToConstant(Location loc, LLVMGenericValueRef genv, ir.Type type)
 	{
+		LLVMDisposeGenericValue(genv);
+		return buildConstantInt(loc, 32);
+		/*
 		auto ptype = cast(ir.PrimitiveType)type;
 		if (ptype is null) {
 			assert(false, "NON PRIMITIVE RETURN");  // TODO: Real error.
@@ -124,7 +128,7 @@ protected:
 			return buildConstantUlong(loc, val);
 		default:
 			assert(false, "UNHANDLED PRIMITIVE TYPE");  // TODO: Real error.
-		}
+		}*/
 	}
 
 protected:

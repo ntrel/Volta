@@ -609,7 +609,7 @@ ir.Constant buildConstantByte(Location loc, byte value)
 {
 	auto c = new ir.Constant();
 	c.location = loc;
-	c.u._byte = value;
+	c.u._int = value;
 	c.type = buildByte(loc);
 
 	return c;
@@ -619,7 +619,7 @@ ir.Constant buildConstantUbyte(Location loc, ubyte value)
 {
 	auto c = new ir.Constant();
 	c.location = loc;
-	c.u._ubyte = value;
+	c.u._uint = value;
 	c.type = buildUbyte(loc);
 
 	return c;
@@ -629,7 +629,7 @@ ir.Constant buildConstantShort(Location loc, short value)
 {
 	auto c = new ir.Constant();
 	c.location = loc;
-	c.u._short = value;
+	c.u._int = value;
 	c.type = buildShort(loc);
 
 	return c;
@@ -639,7 +639,7 @@ ir.Constant buildConstantUshort(Location loc, ushort value)
 {
 	auto c = new ir.Constant();
 	c.location = loc;
-	c.u._ushort = value;
+	c.u._uint = value;
 	c.type = buildUshort(loc);
 
 	return c;
